@@ -1,72 +1,93 @@
-# Demo video script (3:00)
+# Demo video script (target 2:45, hard limit 3:00)
 
-Timings follow the plan (Step 15). **Every number in brackets must come from a real
-run** (the deployed stack, the replay rerun on real history and the real trace, and
-`forecasting/models/metrics.json`). Do not record with the synthetic numbers.
-Record the screen and the AWS console separately; cut on a timeline.
+The submission asks for a published or unlisted video of **no more than 3 minutes**
+covering: about the project, tech stack and architecture, how AWS is used, and
+(optionally) learning and growth. The sections below follow that order. The target is
+2:45 so a slow take still finishes inside the limit.
 
-## 0:00-0:30 The problem
-**Visual:** a chart of water per kWh against wet-bulb (the tower curve from
-`docs/cost-model.md`), then a split screen: Delhi at 3 PM (wet-bulb ~27 °C) and a
-coastal or Nordic night (~8 °C).
+**Every number in brackets must come from a real run** (the deployed stack, the replay
+rerun on real history and the real trace, and `forecasting/models/metrics.json`). Do not
+record with the synthetic numbers. Only claim what is deployed: check CloudFront and the
+number of worker regions in `HUMAN-TODO.md` before saying them.
 
-> "Data centres cool themselves by evaporating water, and the hotter and more humid
-> it is outside, the more they evaporate. In a Delhi afternoon, one kWh of AI compute
-> can cost [2.2] litres of water on site, plus [2] litres at a coal plant. At night in
-> Stockholm it's close to [zero] on site. The colony next door draws on the same
-> stressed supply, and its peak demand falls on exactly those afternoons."
+Record the screen and the AWS console separately; cut on a timeline. Upload to YouTube as
+**Unlisted** (or Public) and open the link in a private window to check it plays.
 
-## 0:30-1:30 Tidewise in use
-**Visual:** dashboard → Submit: 4 GPU-hours, deadline Friday, submitted from Mumbai.
+## 0:00-0:40 About the project
+**Visual:** the water-per-kWh against wet-bulb curve (`docs/cost-model.md`), then the live
+dashboard (`https://main.d38pxhs7tqujak.amplifyapp.com/`): Submit a 4 GPU-hour job with a
+deadline on Friday, then the Job page with the explanation sentence and the two headline
+numbers.
 
-> "Most AI work isn't urgent. Training, fine-tuning, evaluation sweeps all have
-> deadlines in hours or days. Tidewise uses that slack."
+> "Data centres cool themselves by evaporating water, and the hotter and more humid it is
+> outside, the more they use. One kWh of AI compute can cost [2.2] litres of water on site
+> in a Delhi afternoon and close to [zero] on a Nordic night. Most AI work isn't urgent:
+> training, fine-tuning and evaluation sweeps have deadlines in hours or days. Tidewise
+> uses that slack. It picks the AWS region and the hour that finish before the deadline
+> with the least water and carbon, explains why, and issues a receipt: [X]% less water and
+> [Y]% less CO2 than running now in Mumbai."
 
-**Visual:** Surface page, drag the scrubber across 48 h. Blue regions are cheaper than
-"run now, here".
+## 0:40-1:15 Tech stack and architecture
+**Visual:** a single tech-stack slide (logos or labels, grouped), held for about 8 seconds,
+then the diagram from `docs/architecture.md`.
 
-> "Every hour, Tidewise forecasts wet-bulb temperature and grid carbon for [8] AWS
-> regions, 48 hours ahead, and prices each region-hour in litres and kilograms."
+Slide contents:
+- **Backend:** Python 3.12 on AWS Lambda, defined with AWS SAM
+- **Data:** Open-Meteo (weather), Electricity Maps (grid carbon)
+- **Forecasting:** gradient-boosted trees (scikit-learn) judged against persistence and the
+  provider, exported to JSON so Lambda needs no ML runtime
+- **Scheduler:** deadline-constrained greedy search, OR-Tools CP-SAT for splittable jobs
+- **Frontend:** React, Vite, Leaflet
+- **Assistant:** Strands agent calling Claude over the public API
+- **Cloud:** AWS (next section)
 
-**Visual:** Job page: the explanation sentence, options considered, and the two headline
-numbers with their ranges.
+> "The backend is Python on Lambda. Every hour a pipeline pulls weather and grid carbon
+> for [8] regions and forecasts wet-bulb temperature and carbon 48 hours ahead. The model
+> is only used where it beats a naive baseline. A deadline-constrained scheduler prices
+> every region-hour in litres and kilograms and picks the best slot. The dashboard is React
+> with Vite and Leaflet, and an optional Strands-based assistant can submit jobs in plain
+> English."
 
-> "It picks the slot that finishes before the deadline with the least water and carbon,
-> and tells you why: [X]% less water, [Y]% less CO2 than running now in Mumbai,
-> finishing [Z] hours before the deadline."
+## 1:15-2:15 How AWS is used
+**Visual:** the real AWS console, a few seconds each, in this order. The Step Functions
+graph gets the most time.
 
-## 1:30-2:15 How it works on AWS
-**Visual:** the diagram from `docs/architecture.md`, then the real Step Functions console.
+1. **EventBridge + Step Functions** (`pravaah-forecast`): "An EventBridge rule starts a
+   Step Functions pipeline every hour that fetches, predicts and stores, one branch per
+   region, so one failing region doesn't stop the rest."
+2. **DynamoDB + S3:** "Forecasts, jobs and receipts live in DynamoDB. Default price
+   surfaces are published to S3 so the dashboard's standard views never touch Lambda."
+3. **API Gateway + Lambda:** "API Gateway and about [20] Lambda functions serve the
+   dashboard, with Cognito protecting the team policy routes."
+4. **Step Functions** (`pravaah-run`, graph with the Wait state): "Each job gets its own
+   state machine. It waits until the chosen hour, then invokes a worker Lambda in the
+   chosen region and writes the receipt."
+5. **Receipt** showing `ran_in: [eu-north-1]` and `launched_via: cross-region-lambda`.
+6. **SNS + CloudWatch dashboard:** "SNS emails the result. CloudWatch alarms watch the
+   pipeline, and a dashboard tracks litres saved."
+7. **Amplify:** "Amplify Hosting serves the dashboard, and the whole backend is one SAM
+   template."
 
-> "An EventBridge rule runs a Step Functions pipeline every hour: Open-Meteo and
-> Electricity Maps in, a forecast model that's only used where it beats persistence, and
-> DynamoDB out. Each job gets its own state machine. It waits until the chosen hour..."
+> "Honest receipts: Lambda has no GPUs, so the declared GPU job's energy is estimated and
+> the small proxy workload that actually ran is measured. The receipt labels which is
+> which."
 
-**Visual:** the `pravaah-run` graph with the Wait state, then Launch.
+## 2:15-2:35 Does it add up?
+**Visual:** Savings page, trace replay bars, then the when-versus-where table.
 
-> "...launches the work in the chosen region and writes the receipt."
+> "Replaying [500] jobs from [Alibaba's public GPU cluster trace]: [X]% less water, [Y]%
+> less CO2, [100]% of deadlines met, median delay [N] hours. Most of the saving comes from
+> where a job runs, not when."
 
-**Visual:** the receipt: `ran_in: [eu-north-1]`, measured CPU time and energy.
+## 2:35-2:50 Learning and growth (optional, keep it short)
+**Visual:** Forecast quality page, then the Policies page weights.
 
-> "Honest receipts: the declared GPU job's energy is estimated; the proxy workload that
-> actually ran is measured. Lambda has no GPUs, and we say so."
+> "I learned that water and carbon don't always agree: a nuclear-powered grid is clean but
+> thirsty, so users set the weights. I also learned to be honest about what we can't
+> measure. Cooling water is modelled from published curves and calibrated to AWS's own
+> disclosures, so absolute litres are uncertain, but the ranking of slots holds up."
 
-**Visual:** the CloudWatch dashboard, briefly.
-
-## 2:15-2:45 Does it add up?
-**Visual:** Savings page, trace replay bars.
-
-> "Replaying [500] jobs from [Alibaba's public GPU cluster trace]: [X]% less water,
-> [Y]% less CO2, [100]% of deadlines met, median delay [N] hours."
-
-**Visual:** the when-versus-where table, then the Forecast quality page.
-
-> "Most of the saving comes from *where*, not *when*. And water and carbon don't always
-> agree: a nuclear-powered grid is clean but thirsty. You set the weights."
-
-## 2:45-3:00 Close
-> "We don't control any data centre. Cooling water is modelled from published curves and
-> calibrated to AWS's own disclosures, and absolute litres are uncertain. But the ranking
-> of slots holds up. We used AI to decide when AI should run."
+## 2:50-3:00 Close (cut this card first if you run long)
+> "We used AI to decide when AI should run."
 
 **End card:** repo URL, live URL, team names.
