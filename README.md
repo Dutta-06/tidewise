@@ -116,6 +116,8 @@ make dashboard-dev  # in another: http://localhost:5173
 
 Hosted on Amplify (`amplify.yml`). Set `VITE_API_URL` to the stack's `ApiUrl`.
 
+Live dashboard: https://main.d38pxhs7tqujak.amplifyapp.com/
+
 ## Layout
 
 ```
