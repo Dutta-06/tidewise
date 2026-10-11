@@ -1,9 +1,5 @@
 # Tidewise
 
-> Formerly called Pravaah. Only the name changed: AWS resources (stack `pravaah`, table `pravaah-main`, state machines
-> `pravaah-forecast` and `pravaah-run`, functions, alarms) keep their original `pravaah-` names so the deployed app,
-> its data and its URLs are untouched. Renaming them would make CloudFormation recreate the stack.
-
 Water- and carbon-aware scheduling for AI workloads. AI jobs are flexible in
 time and place. Tidewise runs them where cooling needs the least water and the
 grid is cleanest, without missing a deadline, and issues a receipt for what was
